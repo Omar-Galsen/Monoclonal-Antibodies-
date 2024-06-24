@@ -1,0 +1,49 @@
+import sys
+import pandas as pd
+import scipy.stats as stats
+import numpy as np
+
+data = pd.read_excel(sys.argv[1], engine='openpyxl', skiprows = 9)
+
+data = data.iloc[:, 1:]
+
+data.columns = ['Harv',' Col1'  ,'VI'   , 'Col2','Col3',' VF',' UFDF','Fill']
+
+# the code below finds the overall yield by multiplying all other dist
+
+Overall = pd.DataFrame({'Overall':data.product(axis= 1)})
+
+# This one adds the overall to the data
+
+data = pd.concat([data, Overall], axis = 1)
+
+# This one finds the mean, and std of all colunms
+
+statis = pd.DataFrame(columns=['column_name', 'mean', 'std'])
+
+for column in data.columns:
+        mean = data[column].mean()
+        std = data[column].std()
+ statis = statis.append({'column_name' : column, 'mean' : mean, 'std' : std}, ignore_index=True)
+ 
+statis.to_excel('truer.xlsx', index = False)
+# Now let's check if the distribution is normal
+
+stat, p = stats.shapiro(Overall)
+alpha = 0.05
+if p > alpha:
+        print('Sample follows a normal distribution')
+else:
+        print('Sample is not normal')
+
+# Checking the resulsts with propagation of error methods
+statis2 = statis.drop(statis.tail(1).index)
+# changing the data to an array, it's easier to manipulate
+#
+mean_list = np.array(statis2['mean'].tolist())
+std_list = np.array(statis2['std'].tolist())
+overall_mean = np.prod(mean_list)
+overall_stdev = np.sqrt(np.sum((std_list/mean_list)**2)) * overall_mean
+print('mean of overall yield:', overall_mean)
+print('std of overall yield;', overall_stdev)
+# Tolerance intercal: code can be copied from previous ones
